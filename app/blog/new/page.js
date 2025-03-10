@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,7 @@ export default function NewBlogPage() {
   const [lastSaved, setLastSaved] = useState(null);
   const router = useRouter();
   const [wordCount, setWordCount] = useState(0);
-  const [readTime, setReadTime] = useState('0 min');
+  const readTimeRef = useRef('0 min');
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -60,7 +60,7 @@ export default function NewBlogPage() {
         setDescription(description || '');
         if (publishDate) setPublishDate(new Date(publishDate));
         setWordCount(wordCount);
-        setReadTime(readTime);
+        readTimeRef.current = readTime;
       } catch (error) {
         console.error('Error parsing saved draft:', error);
       }
@@ -86,16 +86,16 @@ export default function NewBlogPage() {
       description,
       publishDate: publishDate.toISOString(),
       wordCount,
-      readTime,
+      readTime: readTimeRef.current,
       lastSaved: new Date().toISOString()
     };
     localStorage.setItem('draftBlogPost', JSON.stringify(saveData));
     setLastSaved(new Date());
-  }, [title, content, hours, tags, description, publishDate, wordCount, readTime]);
+  }, [title, content, hours, tags, description, publishDate, wordCount, readTimeRef]);
 
   useEffect(() => {
     const readTime = calculateReadTime(content);
-    setReadTime(readTime);
+    readTimeRef.current = readTime;
   }, [content]);
 
   const handleTitleChange = (e) => {
@@ -504,7 +504,7 @@ export default function NewBlogPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <input type="checkbox" className="mt-1" />
-                  <span>Make sure you've added appropriate tags for better discoverability</span>
+                  <span>Make sure you&apos;ve added appropriate tags for better discoverability</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <input type="checkbox" className="mt-1" />
