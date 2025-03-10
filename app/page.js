@@ -511,86 +511,90 @@ export default function Home() {
             <PaginationControls />
             
           <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-4">Scheduled Posts</h2>
-            <div className="space-y-6">
-              {scheduledPosts.map(post => {
-                const readingTime = Math.ceil((post.content?.replace(/<[^>]*>?/gm, '').split(/\s+/).length || 0) / 200);
-                const tags = Array.isArray(post.tags) ? post.tags : 
-                  typeof post.tags === 'string' ? post.tags.split(',') : [];
-                
-                return (
-                  <Card key={post.id} className="bg-yellow-50 dark:bg-yellow-900/20">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle>{post.title}</CardTitle>
-                        <div className="text-right">
-                          <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
-                            Scheduled: {format(new Date(post.publish_date), 'MMM d, yyyy')}
-                          </p>
-                          <div className="flex gap-2">
-                            <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {post.hours || 0} {post.hours === 1 ? 'hour' : 'hours'} shift
-                            </Badge>
-                            <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
-                            </Badge>
+            {user?.id === process.env.NEXT_PUBLIC_AUTHOR_USER_ID && (
+              <>
+                <h2 className="text-2xl font-bold mb-4">Scheduled Posts</h2>
+                <div className="space-y-6">
+                  {scheduledPosts.map(post => {
+                    const readingTime = Math.ceil((post.content?.replace(/<[^>]*>?/gm, '').split(/\s+/).length || 0) / 200);
+                    const tags = Array.isArray(post.tags) ? post.tags : 
+                      typeof post.tags === 'string' ? post.tags.split(',') : [];
+                    
+                    return (
+                      <Card key={post.id} className="bg-yellow-50 dark:bg-yellow-900/20">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <CardTitle>{post.title}</CardTitle>
+                            <div className="text-right">
+                              <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
+                                Scheduled: {format(new Date(post.publish_date), 'MMM d, yyyy')}
+                              </p>
+                              <div className="flex gap-2">
+                                <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {post.hours || 0} {post.hours === 1 ? 'hour' : 'hours'} shift
+                                </Badge>
+                                <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p>{post.excerpt || 'No excerpt available'}</p>
-                      {tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-4">
-                          {tags.slice(0, 6).map((tag, index) => (
-                            <Badge 
-                              key={`${tag}-${index}`}
-                              variant="secondary" 
-                              className="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                          {tags.length > 6 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{tags.length - 6} more
-                            </Badge>
+                        </CardHeader>
+                        <CardContent>
+                          <p>{post.excerpt || 'No excerpt available'}</p>
+                          {tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-4">
+                              {tags.slice(0, 6).map((tag, index) => (
+                                <Badge 
+                                  key={`${tag}-${index}`}
+                                  variant="secondary" 
+                                  className="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                              {tags.length > 6 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{tags.length - 6} more
+                                </Badge>
+                              )}
+                            </div>
                           )}
+                        </CardContent>
+                        <CardFooter className="flex justify-between">
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => router.push(`/blog/${post.id}`)}
+                            >
+                              Read More
+                            </Button>
+                            <BlogPostActions 
+                              postId={post.id} 
+                              postUserId={post.user_id} 
+                            />
+                          </div>
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                  {scheduledPosts.length === 0 && (
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center gap-2">
+                          <p className="text-lg font-medium text-muted-foreground">
+                            No scheduled posts
+                          </p>
                         </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => router.push(`/blog/${post.id}`)}
-                        >
-                          Read More
-                        </Button>
-                        <BlogPostActions 
-                          postId={post.id} 
-                          postUserId={post.user_id} 
-                        />
-                      </div>
-                    </CardFooter>
-                  </Card>
-                );
-              })}
-              {scheduledPosts.length === 0 && (
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center gap-2">
-                      <p className="text-lg font-medium text-muted-foreground">
-                        No scheduled posts
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           </div>
           
