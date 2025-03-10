@@ -49,6 +49,13 @@ export default function BlogEditor({
     initialPost?.publish_date ? new Date(initialPost.publish_date) : new Date()
   );
   const [tags, setTags] = useState(initialPost?.tags?.join(', ') || '');
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    // ... other fields
+  });
+  const [validationErrors, setValidationErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -201,6 +208,47 @@ export default function BlogEditor({
     const event = new Event('editor-change');
     window.dispatchEvent(event);
   });
+
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.title.trim()) {
+      errors.title = 'Title is required';
+    }
+    if (!formData.content.trim()) {
+      errors.content = 'Content is required';
+    }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/blog', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error.message);
+      }
+      // Handle success
+    } catch (error) {
+      console.error('Error:', error);
+      // Show error to user
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isFormValid = formData.title.trim() && formData.content.trim();
 
   return (
     <div className="flex flex-col h-full bg-background rounded-lg shadow-xl border border-border w-full transition-all">

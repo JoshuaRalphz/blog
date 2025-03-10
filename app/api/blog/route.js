@@ -11,7 +11,6 @@ const supabase = createClient(
 const postSchema = z.object({
   title: z.string().min(1),
   content: z.string().min(1),
-  description: z.string().optional(),
   hours: z.number().min(0),
   tags: z.array(z.string()),
   publish_date: z.string().datetime()
@@ -68,7 +67,20 @@ export async function POST(request) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validatedData = postSchema.parse(body);
+    try {
+      const validatedData = postSchema.parse(body);
+    } catch (validationError) {
+      return NextResponse.json({
+        error: {
+          message: 'Validation failed',
+          code: 'VALIDATION_ERROR',
+          details: validationError.errors.map(err => ({
+            field: err.path.join('.'),
+            message: err.message
+          }))
+        }
+      }, { status: 400 });
+    }
 
     // Format tags properly
     const formattedTags = formatTags(validatedData.tags);
@@ -116,8 +128,9 @@ export async function POST(request) {
     return NextResponse.json({ 
       error: {
         message: error.message,
-        code: 'SERVER_ERROR'
+        code: error.code || 'SERVER_ERROR',
+        details: error.details || []
       } 
-    }, { status: 500 });
+    }, { status: error.status || 500 });
   }
 } 
