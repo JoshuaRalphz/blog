@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getAuthData } from '@/utils/clerkAuth';
-import { getSupabaseClient } from '@/utils/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request) {
   try {
-    const supabase = await getSupabaseClient();
+    // Initialize Supabase client directly instead of using getSupabaseClient
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
     
     // Get authenticated user
     const { clerkUserId } = await getAuthData(request);
@@ -67,6 +71,7 @@ export async function POST(request) {
     const currentReactions = post.reactions || {};
     currentReactions[reactionType] = (currentReactions[reactionType] || 0) + countChange;
 
+    // Update the post with new reaction counts
     const { error: updateError } = await supabase
       .from('blog_posts')
       .update({ reactions: currentReactions })
@@ -74,16 +79,19 @@ export async function POST(request) {
 
     if (updateError) throw updateError;
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       success: true,
-      hasReacted: countChange === 1,
-      count: currentReactions[reactionType] || 0
-    });
-
+      reactions: currentReactions
+    }, { status: 200 });
   } catch (error) {
-    console.error('Error in reactions API:', error);
+    console.error('Error in reactions route:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { 
+        error: {
+          message: error.message || 'Failed to process reaction',
+          code: 'SERVER_ERROR'
+        } 
+      },
       { status: 500 }
     );
   }

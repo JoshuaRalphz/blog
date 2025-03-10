@@ -5,8 +5,42 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY
 );
+
+export async function GET(request, { params }) {
+  try {
+    const { id } = params;
+
+    // Fetch post
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!data) {
+      return NextResponse.json(
+        { error: { message: 'Post not found', code: 'NOT_FOUND' } },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ data }, { status: 200 });
+  } catch (error) {
+    console.error('Error in GET route:', error);
+    return NextResponse.json(
+      { 
+        error: {
+          message: error.message || 'Failed to fetch post',
+          code: 'SERVER_ERROR'
+        } 
+      },
+      { status: 500 }
+    );
+  }
+}
 
 export async function PUT(request, { params }) {
   try {
