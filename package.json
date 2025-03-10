@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "cron": "node netlify/functions/schedule-posts.js"
+    "cron": "node netlify/functions/schedule-posts.js",
+    "postinstall": "npm dedupe"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
@@ -45,7 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^1.41.3",
     "clsx": "^2.1.1",
-    "date-fns": "^4.1.0",
+    "date-fns": "^2.30.0",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.479.0",
     "next": "15.2.1",
