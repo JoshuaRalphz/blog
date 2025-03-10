@@ -9,9 +9,23 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import BlogPostActions from '@/components/BlogPostActions';
 
+// Add this helper function to calculate reading time
+const calculateReadingTime = (content) => {
+  // Strip HTML tags to get just the text
+  const text = content.replace(/<[^>]*>?/gm, '');
+  // Count words (approximately)
+  const wordCount = text.split(/\s+/).length;
+  // Average reading speed: 200 words per minute
+  const minutes = Math.ceil(wordCount / 200);
+  return minutes < 1 ? 1 : minutes;
+};
+
 export default function BlogCard({ post, onDelete }) {
   const router = useRouter();
   
+  // Calculate reading time
+  const readingTime = calculateReadingTime(post.content);
+
   // More robust tag parsing with error handling
   const parseTags = (tags) => {
     try {
@@ -119,7 +133,7 @@ export default function BlogCard({ post, onDelete }) {
             className="text-xs flex items-center gap-1 ml-auto sm:ml-0 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 border-blue-100 dark:border-blue-800"
           >
             <Clock className="h-3 w-3" />
-            {post.hours} {post.hours === 1 ? 'hour' : 'hours'}
+            {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
           </Badge>
           </div>
         </div>
