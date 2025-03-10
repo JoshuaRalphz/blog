@@ -1,9 +1,9 @@
 [build]
   command = "npm run build"
-  publish = "out"
+  publish = "out"  # This should match the distDir in next.config.js
 
 [functions]
   directory = "netlify/functions"
 
 [[plugins]]
-  package = "@netlify/plugin-nextjs" 
+  package = "@netlify/plugin-nextjs"

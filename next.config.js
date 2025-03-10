@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove the plugins array as it's not needed here
-  // Tailwind CSS plugins should be configured in tailwind.config.js
+  output: 'export', // This enables static export
+  distDir: 'out', // This specifies the output directory
 };
 
-export default nextConfig;
+module.exports = nextConfig;
