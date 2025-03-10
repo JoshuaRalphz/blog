@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Clock, CalendarDays, Filter } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { cn } from '@/lib/utils';
 
 export default function CalendarComponent({ 
   selectedDate, 
@@ -145,13 +146,44 @@ export default function CalendarComponent({
                 date > endDate || 
                 date > new Date()
               }
-              className="rounded-md border dark:border-gray-800 justify-items-center w-full mx-auto h-102"
+              className="rounded-lg border border-gray-200 dark:border-gray-800 justify-items-center w-full mx-auto h-102 shadow-sm"
               classNames={{
-                head_cell: "text-muted-foreground dark:text-gray-400 rounded-md w-11 font-normal text-[0.8rem]",
-                cell: "h-11 w-11 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                day: "h-11 w-11 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground text-base",
-                day_selected: "bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white focus:bg-indigo-600 focus:text-white dark:bg-indigo-700 dark:hover:bg-indigo-600",
-                day_today: "bg-accent text-accent-foreground",
+                head_cell: "text-gray-500 dark:text-gray-400 rounded-md w-11 font-medium text-[0.8rem]",
+                cell: cn(
+                  "h-11 w-11 text-center text-sm p-0 relative",
+                  "[&:has([aria-selected])]:bg-emerald-50 dark:[&:has([aria-selected])]:bg-emerald-900/20",
+                  "[&:has([aria-selected].day-range-end)]:rounded-r-md",
+                  "[&:has([aria-selected].day-range-start)]:rounded-l-md",
+                  "first:[&:has([aria-selected])]:rounded-l-md",
+                  "last:[&:has([aria-selected])]:rounded-r-md",
+                  "focus-within:relative focus-within:z-20"
+                ),
+                day: cn(
+                  "h-11 w-11 p-0 font-medium aria-selected:opacity-100",
+                  "hover:bg-emerald-50 dark:hover:bg-emerald-900/50",
+                  "text-base transition-colors duration-200",
+                  "text-gray-900 dark:text-gray-100"
+                ),
+                day_selected: cn(
+                  "bg-emerald-600 text-white",
+                  "hover:bg-emerald-700 hover:text-white",
+                  "focus:bg-emerald-600 focus:text-white",
+                  "dark:bg-emerald-700 dark:hover:bg-emerald-600"
+                ),
+                day_today: cn(
+                  "bg-emerald-100 dark:bg-emerald-900/30",
+                  "text-emerald-700 dark:text-emerald-300",
+                  "border-2 border-emerald-500 dark:border-emerald-700",
+                  "font-semibold"
+                ),
+                day_outside: cn(
+                  "text-gray-400 dark:text-gray-500",
+                  "aria-selected:text-gray-400 dark:aria-selected:text-gray-500"
+                ),
+                day_disabled: cn(
+                  "text-gray-300 dark:text-gray-600",
+                  "opacity-50"
+                ),
               }}
               components={{
                 DayContent: (props) => {
@@ -173,7 +205,7 @@ export default function CalendarComponent({
                           ${selectedDate && isSameDay(date, selectedDate) ? 'ring-2 ring-indigo-600 dark:ring-indigo-400' : ''}`}
                       ></div>
                       <span className={`z-10 relative text-sm font-medium 
-                        ${postCount > 3 ? 'text-white dark:text-gray-100' : 'text-gray-800 dark:text-gray-200'}`}>
+                        ${postCount > 0 ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
                         {date.getDate()}
                       </span>
                       {postCount > 0 && (

@@ -42,18 +42,36 @@ function Calendar({
         ),
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "size-8 p-0 font-normal aria-selected:opacity-100"
+          "size-11 p-0 font-medium aria-selected:opacity-100 text-base",
+          "hover:bg-gray-100 dark:hover:bg-gray-800",
+          "transition-colors duration-200",
+          "text-gray-900 dark:text-gray-100"
         ),
         day_range_start:
           "day-range-start aria-selected:bg-primary aria-selected:text-primary-foreground",
         day_range_end:
           "day-range-end aria-selected:bg-primary aria-selected:text-primary-foreground",
-        day_selected:
-          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-        day_today: "bg-accent text-accent-foreground",
-        day_outside:
-          "day-outside text-muted-foreground aria-selected:text-muted-foreground",
-        day_disabled: "text-muted-foreground opacity-50",
+        day_selected: cn(
+          "bg-blue-600 text-white",
+          "hover:bg-blue-700 hover:text-white",
+          "focus:bg-blue-600 focus:text-white",
+          "dark:bg-blue-700 dark:hover:bg-blue-600",
+          "shadow-sm"
+        ),
+        day_today: cn(
+          "bg-blue-50 dark:bg-blue-900/20",
+          "text-blue-700 dark:text-blue-300",
+          "border border-blue-300 dark:border-blue-700",
+          "font-semibold"
+        ),
+        day_outside: cn(
+          "text-gray-400 dark:text-gray-500",
+          "aria-selected:text-gray-400 dark:aria-selected:text-gray-500"
+        ),
+        day_disabled: cn(
+          "text-gray-300 dark:text-gray-600",
+          "opacity-50"
+        ),
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
