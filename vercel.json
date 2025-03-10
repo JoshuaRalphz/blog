@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/blog/schedule",
+      "schedule": "*/5 * * * *",
+      "timeZone": "UTC"
+    }
+  ]
+} 
