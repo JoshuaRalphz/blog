@@ -60,20 +60,30 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
     const checkUserReaction = async () => {
       if (isSignedIn && user?.id) {
         try {
-          const response = await fetch(
-            `/api/blog/reactions/check?postId=${postId}&userId=${user.id}&reactionType=${reactionType}`
-          );
+          const response = await fetch('/.netlify/functions/reactions-check', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              postId, 
+              userId: user.id 
+            }),
+          });
           
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+          }
           
           const { hasReacted } = await response.json();
           setIsReacted(hasReacted);
         } catch (error) {
           console.error('Error checking reaction:', error);
+          toast.error('Failed to check reaction status');
         }
       }
     };
-
     checkUserReaction();
   }, [isSignedIn, postId, reactionType, user?.id]);
 
@@ -87,16 +97,16 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/blog/reactions', {
+      const response = await fetch('/.netlify/functions/reactions', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ 
           postId, 
           reactionType,
           userId: user.id 
         }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {

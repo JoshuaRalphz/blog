@@ -1,16 +1,10 @@
 'use server'; // Mark this as server-only
 import { auth } from '@clerk/nextjs/server';
 
-export async function getAuthData(request) {
+export async function getAuthData() {
   try {
-    // Get the auth state from the request
-    const { userId } = await auth();
-    
-    if (!userId) {
-      throw new Error('No user ID found');
-    }
-
-    return { clerkUserId: userId }; // Ensure this is a plain object
+    const { userId } = auth();
+    return { clerkUserId: userId };
   } catch (error) {
     console.error('Error in getAuthData:', error);
     throw error;

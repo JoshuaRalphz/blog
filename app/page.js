@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import { format } from 'date-fns';
 import { useUser, SignedIn, SignedOut, SignInButton, useClerk } from '@clerk/nextjs';
@@ -14,17 +14,18 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
+
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { ThemeToggle } from '@/components/theme-toggle'
 import { createClient } from '@supabase/supabase-js';
 import BlogCard from '@/components/BlogCard';
-import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
+
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
 
 // Add this function to calculate weekly hours
 const calculateWeeklyHours = (hoursData) => {
@@ -50,11 +51,15 @@ const calculateWeeklyHours = (hoursData) => {
   return Object.values(weeks).sort((a, b) => a.startDate - b.startDate);
 };
 
+const CalendarComponent = dynamic(() => import('@/components/CalendarComponent'), {
+  loading: () => <p>Loading calendar...</p>,
+  ssr: false
+});
+
 export default function Home() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [filteredPosts, setFilteredPosts] = useState([]);
   
   // Blog date range
   const startDate = new Date(2025, 1, 5); // Feb 5, 2025
@@ -64,56 +69,121 @@ export default function Home() {
   const [hoursData, setHoursData] = useState([]);
   const [loadingHours, setLoadingHours] = useState(true);
   const [posts, setPosts] = useState([]);
-  const [weeklyHours, setWeeklyHours] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(0);
   const [weeklyPosts, setWeeklyPosts] = useState([]);
+  const [filteredPosts, setFilteredPosts] = useState([]);
 
   const router = useRouter();
 
+  // Move this line above the useMemo hook
+  const totalRequiredHours = 400;
+
+  // Memoize calculated values
+  const { hoursCompleted, hoursRemaining, completionPercentage } = useMemo(() => {
+    const completed = Array.isArray(hoursData) ? 
+      hoursData.reduce((sum, entry) => sum + (entry?.hours || 0), 0) : 0;
+    const remaining = totalRequiredHours - completed;
+    const percentage = Math.round((completed / totalRequiredHours) * 100);
+    return { hoursCompleted: completed, hoursRemaining: remaining, completionPercentage: percentage };
+  }, [hoursData]);
+
+  // Memoize weekly hours calculation
+  const weeklyHours = useMemo(() => calculateWeeklyHours(hoursData || []), [hoursData]);
+
+  // Memoize scheduled posts
+  const scheduledPosts = useMemo(() => 
+    posts.filter(post => {
+      const postDate = new Date(post.publish_date);
+      return post.status === 'scheduled' && postDate > new Date();
+    }), 
+  [posts]);
+
+  // Optimize event handlers with useCallback
+  const handleDeletePost = useCallback((deletedPostId) => {
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+    setWeeklyPosts(prevWeeks => 
+      prevWeeks.map(week => ({
+        ...week,
+        posts: week.posts.filter(post => post.id !== deletedPostId)
+      }))
+    );
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (err) {
+      console.error('Error signing out:', err);
+      toast.error('Failed to sign out');
+    }
+  }, [signOut, router]);
+
   // Modify the useEffect to fetch data without authentication check
   useEffect(() => {
-    const fetchHours = async () => {
+    const fetchData = async () => {
       try {
-        const hoursResponse = await fetch('/api/hours');
-        
-        // Check if response is OK
-        if (!hoursResponse.ok) {
-          throw new Error(`HTTP error! status: ${hoursResponse.status}`);
+        const [hoursResponse, postsResponse] = await Promise.all([
+          fetch('/api/hours'),
+          fetch('/api/blog/posts')
+        ]);
+
+        if (!hoursResponse.ok || !postsResponse.ok) {
+          throw new Error('Failed to fetch data');
         }
+
+        const [hoursData, postsData] = await Promise.all([
+          hoursResponse.json(),
+          postsResponse.json()
+        ]);
+
+        setHoursData(hoursData.data || []);
         
-        // Check content type
-        const contentType = hoursResponse.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Received non-JSON response');
-        }
-        
-        const { data: hoursData } = await hoursResponse.json();
-        
-        // Use the data directly from the API
-        setHoursData(hoursData || []);
-        setWeeklyHours(calculateWeeklyHours(hoursData || []));
+        const processedPosts = postsData.data.map(post => ({
+          id: post.id,
+          title: post.title,
+          content: post.content,
+          publish_date: post.publish_date || post.published_at,
+          status: post.status || (new Date(post.publish_date) > new Date() ? 'scheduled' : 'published'),
+          hours: post.hours || 0,
+          tags: post.tags || [],
+          excerpt: post.excerpt || ''
+        }));
+
+        const postsByWeek = processedPosts.reduce((weeks, post) => {
+          const postDate = new Date(post.publish_date);
+          const weekStart = new Date(postDate);
+          weekStart.setDate(postDate.getDate() - postDate.getDay());
+          
+          const weekKey = format(weekStart, 'yyyy-MM-dd');
+          
+          if (!weeks[weekKey]) {
+            weeks[weekKey] = {
+              startDate: weekStart,
+              posts: []
+            };
+          }
+          
+          weeks[weekKey].posts.push(post);
+          return weeks;
+        }, {});
+
+        setWeeklyPosts(Object.values(postsByWeek).sort((a, b) => a.startDate - b.startDate));
+        setPosts(processedPosts);
       } catch (error) {
-        console.error('Error fetching hours:', error);
-        toast.error('Failed to load hours data');
-        setHoursData([]);
-        setWeeklyHours([]);
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load data');
       } finally {
+        setLoadingPosts(false);
         setLoadingHours(false);
       }
     };
-    
-    fetchHours();
+
+    fetchData();
   }, []);
   
   // Calculate totals with safe defaults
-  const totalRequiredHours = 400;
-  const hoursCompleted = Array.isArray(hoursData) ? 
-    hoursData.reduce((sum, entry) => sum + (entry?.hours || 0), 0) : 
-    0;
-  const hoursRemaining = totalRequiredHours - hoursCompleted;
-  const completionPercentage = Math.round((hoursCompleted / totalRequiredHours) * 100);
-  
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -184,48 +254,20 @@ export default function Home() {
 
     // Remove the isSignedIn check
     fetchPosts();
-  }, []); // Remove isSignedIn from dependencies
+  }, []);
 
-  // Update the useEffect for filtering posts
+  // Add this useEffect to handle filtering when selectedDate changes
   useEffect(() => {
-    if (posts.length > 0) {
-      // If a specific date is selected, filter posts for that date
-      if (selectedDate) {
-        const filtered = posts.filter(post => {
-          const postDate = new Date(post.publish_date);
-          return postDate.toDateString() === selectedDate.toDateString();
-        });
-        
-        if (filtered.length > 0) {
-          setFilteredPosts(filtered);
-          return;
-        }
-      }
-      
-      // Otherwise, show the weekly posts
+    if (selectedDate) {
+      const filtered = posts.filter(post => {
+        const postDate = new Date(post.publish_date);
+        return postDate.toDateString() === selectedDate.toDateString();
+      });
+      setFilteredPosts(filtered);
+    } else {
       setFilteredPosts(weeklyPosts[currentWeek]?.posts || []);
     }
   }, [selectedDate, posts, weeklyPosts, currentWeek]);
-
-  const handleDeletePost = (deletedPostId) => {
-    setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
-    setWeeklyPosts(prevWeeks => 
-      prevWeeks.map(week => ({
-        ...week,
-        posts: week.posts.filter(post => post.id !== deletedPostId)
-      }))
-    );
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      router.push('/'); // Redirect to home after sign out
-    } catch (err) {
-      console.error('Error signing out:', err);
-      toast.error('Failed to sign out');
-    }
-  };
 
   if (loadingPosts) {
     return (
@@ -234,99 +276,6 @@ export default function Home() {
       </div>
     );
   }
-
-  // Modify the calendar component
-  const CalendarComponent = () => {
-    // Create a Set of dates that have posts
-    const postDates = new Set(
-      posts.map(post => new Date(post.publish_date).toDateString())
-    );
-
-    return (
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Blog Tracking</CardTitle>
-          <CardDescription>Click a date to view its posts</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="w-full max-w-[800px] mx-auto">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => {
-                if (date) {
-                  setSelectedDate(date);
-                  // Reset to show all weeks when a date is selected
-                  setCurrentWeek(weeklyPosts.length - 1);
-                }
-              }}
-              disabled={(date) => 
-                date < startDate || 
-                date > endDate || 
-                date > new Date()
-              }
-              className="rounded-lg border shadow-sm"
-              classNames={{
-                months: "w-full",
-                month: "w-full space-y-4",
-                caption: "flex justify-center pt-1 relative items-center",
-                caption_label: "text-lg font-semibold",
-                nav: "flex items-center gap-1",
-                nav_button: cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-8 w-8 p-0 hover:bg-accent"
-                ),
-                nav_button_previous: "absolute left-1",
-                nav_button_next: "absolute right-1",
-                table: "w-full border-collapse space-y-2",
-                head_row: "flex justify-between",
-                head_cell: "text-muted-foreground rounded-md w-10 font-medium text-sm",
-                row: "flex w-full mt-2 justify-between",
-                cell: cn(
-                  "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
-                  "h-10 w-10 rounded-md hover:bg-accent transition-colors",
-                  "aria-selected:bg-primary aria-selected:text-primary-foreground"
-                ),
-                day: cn(
-                  "h-9 w-9 p-0 font-normal rounded-md relative",
-                  "aria-selected:bg-primary aria-selected:text-primary-foreground hover:bg-primary/90"
-                ),
-                day_disabled: "text-muted-foreground opacity-50",
-              }}
-              components={{
-                DayContent: (props) => {
-                  const hasPost = postDates.has(props.date.toDateString());
-                  return (
-                    <div className="relative">
-                      {props.date.getDate()}
-                      {hasPost && (
-                        <span className="absolute top-0 right-0 text-green-500">
-                          ✓
-                        </span>
-                      )}
-                    </div>
-                  );
-                }
-              }}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-center p-6 pt-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary hover:text-primary/80"
-            onClick={() => {
-              setSelectedDate(null);
-              setCurrentWeek(weeklyPosts.length - 1); // Reset to current week
-            }}
-          >
-            Show All Posts
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  };
 
   // Update the renderPosts function to use filteredPosts
   const renderPosts = () => (
@@ -372,13 +321,11 @@ export default function Home() {
     </div>
   );
 
-  // Add pagination controls
+  // Update PaginationControls to handle week changes
   const PaginationControls = () => {
     const handleWeekChange = (newWeek) => {
       setSelectedDate(null);
       setCurrentWeek(newWeek);
-      // Filter posts for the selected week
-      setFilteredPosts(weeklyPosts[newWeek]?.posts || []);
     };
 
     return (
@@ -519,47 +466,41 @@ export default function Home() {
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-4">Scheduled Posts</h2>
             <div className="space-y-6">
-              {posts
-                .filter(post => {
-                  const postDate = new Date(post.publish_date);
-                  return post.status === 'scheduled' && postDate > new Date();
-                })
-                .map(post => (
-                  <Card key={post.id} className="bg-yellow-50 dark:bg-yellow-900/20">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <CardTitle>{post.title}</CardTitle>
-                        <div className="text-right">
-                          <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
-                            Scheduled: {format(new Date(post.publish_date), 'MMM d, yyyy')}
-                          </p>
-                          <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
-                            {post.hours} hours
-                          </Badge>
-                        </div>
+              {scheduledPosts.map(post => (
+                <Card key={post.id} className="bg-yellow-50 dark:bg-yellow-900/20">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <CardTitle>{post.title}</CardTitle>
+                      <div className="text-right">
+                        <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
+                          Scheduled: {format(new Date(post.publish_date), 'MMM d, yyyy')}
+                        </p>
+                        <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
+                          {post.hours} hours
+                        </Badge>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p>{post.excerpt || 'No excerpt available'}</p>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <div className="flex gap-2">
-                        {post.tags?.map(tag => (
-                          <Badge key={tag} variant="secondary">{tag}</Badge>
-                        ))}
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => router.push(`/blog/${post.id}`)}
-                      >
-                        Read More
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))
-              }
-              {posts.filter(post => post.status === 'scheduled' && new Date(post.publish_date) > new Date()).length === 0 && (
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p>{post.excerpt || 'No excerpt available'}</p>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <div className="flex gap-2">
+                      {post.tags?.map(tag => (
+                        <Badge key={tag} variant="secondary">{tag}</Badge>
+                      ))}
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => router.push(`/blog/${post.id}`)}
+                    >
+                      Read More
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+              {scheduledPosts.length === 0 && (
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex flex-col items-center gap-2">
@@ -612,40 +553,16 @@ export default function Home() {
               </CardContent>
             </Card>
             
-            <CalendarComponent />
             
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Weekly Hours</CardTitle>
-                <CardDescription>Hours logged by week</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {weeklyHours.map((week, index) => {
-                    const weekNumber = index + 1;
-                    const weekRange = `${format(week.startDate, 'MMM d')} - ${format(
-                      new Date(week.startDate).setDate(week.startDate.getDate() + 6),
-                      'MMM d'
-                    )}`;
-                    
-                    return (
-                      <div key={week.startDate}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm">Week {weekNumber} ({weekRange})</span>
-                          <span className="text-sm font-medium">{week.totalHours} hours</span>
-                        </div>
-                        <Progress 
-                          value={(week.totalHours / 40) * 100} 
-                          className="h-2" 
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            
+            <CalendarComponent 
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              startDate={startDate}
+              endDate={endDate}
+              posts={posts}
+              weeklyHours={weeklyHours}
+            />
+              
           </div>
         </div>
 
