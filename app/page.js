@@ -76,30 +76,26 @@ export default function Home() {
     const fetchHours = async () => {
       try {
         const hoursResponse = await fetch('/api/hours');
+        
+        // Check if response is OK
+        if (!hoursResponse.ok) {
+          throw new Error(`HTTP error! status: ${hoursResponse.status}`);
+        }
+        
+        // Check content type
+        const contentType = hoursResponse.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Received non-JSON response');
+        }
+        
         const { data: hoursData } = await hoursResponse.json();
         
-        const postsResponse = await fetch('/api/blog/posts');
-        const { data: postsData } = await postsResponse.json();
-        
-        // Ensure data is properly serialized
-        const blogHours = postsData.map(post => ({
-          date: post.publish_date,
-          hours: post.hours || 0
-        }));
-        
-        // Create a plain object
-        const combinedData = [
-          ...(Array.isArray(hoursData) ? hoursData.map(item => ({
-            date: item.date,
-            hours: item.hours
-          })) : []),
-          ...blogHours
-        ];
-        
-        setHoursData(combinedData);
-        setWeeklyHours(calculateWeeklyHours(combinedData));
+        // Use the data directly from the API
+        setHoursData(hoursData || []);
+        setWeeklyHours(calculateWeeklyHours(hoursData || []));
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching hours:', error);
+        toast.error('Failed to load hours data');
         setHoursData([]);
         setWeeklyHours([]);
       } finally {
@@ -107,9 +103,8 @@ export default function Home() {
       }
     };
     
-    // Remove the isSignedIn check
     fetchHours();
-  }, []); // Remove isSignedIn from dependencies
+  }, []);
   
   // Calculate totals with safe defaults
   const totalRequiredHours = 400;
