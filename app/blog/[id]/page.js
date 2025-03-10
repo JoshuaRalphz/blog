@@ -86,14 +86,15 @@ export default async function BlogPostPage({ params }) {
   // Add these functions for handling reactions
   const handleReaction = async (reactionType) => {
     try {
-      const response = await fetch('/api/blog/reactions', {
+      const response = await fetch('/.netlify/functions/reactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           postId: post.id,
-          reactionType
+          reactionType,
+          userId: user.id
         })
       });
 

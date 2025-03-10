@@ -60,7 +60,11 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
     const checkUserReaction = async () => {
       if (isSignedIn && user?.id) {
         try {
-          const response = await fetch('/.netlify/functions/reactions-check', {
+          const endpoint = process.env.NODE_ENV === 'development' 
+            ? '/api/reactions' 
+            : '/.netlify/functions/reactions';
+
+          const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -97,15 +101,19 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
 
     setIsLoading(true);
     try {
-      const response = await fetch('/.netlify/functions/reactions', {
+      const endpoint = process.env.NODE_ENV === 'development' 
+        ? '/api/reactions' 
+        : '/.netlify/functions/reactions';
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
           postId, 
-          reactionType,
-          userId: user.id 
+          userId: user.id,
+          reactionType
         }),
       });
 

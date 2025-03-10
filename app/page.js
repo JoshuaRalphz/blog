@@ -56,6 +56,20 @@ const CalendarComponent = dynamic(() => import('@/components/CalendarComponent')
   ssr: false
 });
 
+// Add a retry function
+const fetchWithRetry = async (url, options = {}, retries = 3) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      throw new Error(`HTTP error! status: ${response.status}`);
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
+  }
+};
+
 export default function Home() {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -120,25 +134,26 @@ export default function Home() {
     }
   }, [signOut, router]);
 
-  // Modify the useEffect to fetch data without authentication check
+  // Modify the useEffect to fetch data with retries and better error handling
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [hoursResponse, postsResponse] = await Promise.all([
-          fetch('/api/hours'),
-          fetch('/api/blog/posts')
+          fetchWithRetry('/api/hours'),
+          fetchWithRetry('/api/blog/posts')
         ]);
-
-        if (!hoursResponse.ok || !postsResponse.ok) {
-          throw new Error('Failed to fetch data');
-        }
 
         const [hoursData, postsData] = await Promise.all([
           hoursResponse.json(),
           postsResponse.json()
         ]);
 
-        setHoursData(hoursData.data || []);
+        // Add validation for the response data
+        if (!hoursData?.data || !postsData?.data) {
+          throw new Error('Invalid data format from API');
+        }
+
+        setHoursData(hoursData.data);
         
         const processedPosts = postsData.data.map(post => ({
           id: post.id,
@@ -173,7 +188,11 @@ export default function Home() {
         setPosts(processedPosts);
       } catch (error) {
         console.error('Error fetching data:', error);
-        toast.error('Failed to load data');
+        toast.error('Failed to load data. Please try again later.');
+        // Set default values to prevent app crash
+        setHoursData([]);
+        setPosts([]);
+        setWeeklyPosts([]);
       } finally {
         setLoadingPosts(false);
         setLoadingHours(false);
