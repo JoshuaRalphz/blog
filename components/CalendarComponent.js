@@ -20,13 +20,15 @@ export default function CalendarComponent({
   
   // Group posts by date for easier lookup
   const postsByDate = {};
-  posts.forEach(post => {
-    const dateStr = new Date(post.publish_date).toDateString();
-    if (!postsByDate[dateStr]) {
-      postsByDate[dateStr] = [];
-    }
-    postsByDate[dateStr].push(post);
-  });
+  posts
+    .filter(post => post.status === 'published') // Only include published posts
+    .forEach(post => {
+      const dateStr = new Date(post.publish_date).toDateString();
+      if (!postsByDate[dateStr]) {
+        postsByDate[dateStr] = [];
+      }
+      postsByDate[dateStr].push(post);
+    });
   
   // Get posts for selected date
   const selectedDatePosts = selectedDate 
@@ -77,7 +79,9 @@ export default function CalendarComponent({
       const month = new Date(now.getFullYear(), i, 1);
       const monthPosts = posts.filter(post => {
         const postDate = new Date(post.publish_date);
-        return postDate.getMonth() === i && postDate.getFullYear() === now.getFullYear();
+        return post.status === 'published' && // Only include published posts
+               postDate.getMonth() === i && 
+               postDate.getFullYear() === now.getFullYear();
       });
       
       monthsActivity.push({

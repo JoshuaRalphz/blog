@@ -162,7 +162,6 @@ export default function EditBlogPage() {
         
         <Button 
           onClick={() => handleSubmit(post)}
-          disabled={!hasUnsavedChanges}
           className="shadow-lg"
         >
           Update Post

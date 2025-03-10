@@ -92,17 +92,9 @@ export default function BlogCard({ post, onDelete }) {
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`/api/blog/${post.id}`, {
-        method: 'DELETE'
-      });
-      
-      if (!response.ok) throw new Error('Failed to delete post');
-      
-      toast.success('Post deleted successfully');
-      // Call the parent's delete handler
-      onDelete(post.id);
+      await onDelete(post.id);
     } catch (error) {
-      toast.error(error.message);
+      console.error('Error deleting post:', error);
     }
   };
 
@@ -115,7 +107,6 @@ export default function BlogCard({ post, onDelete }) {
           </CardTitle>
           
           <div className="flex items-center gap-4">
-            
             {post.status === 'scheduled' ? (
               <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs">
                 <Calendar className="h-3 w-3 mr-1" />
@@ -124,16 +115,25 @@ export default function BlogCard({ post, onDelete }) {
             ) : (
               <span className="text-sm text-muted-foreground flex items-center">
                 <Calendar className="h-3 w-3 mr-1 opacity-70" />
-                
                 {formatDate(post.publish_date)}
               </span>
-            )}<Badge 
-            variant="outline" 
-            className="text-xs flex items-center gap-1 ml-auto sm:ml-0 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 border-blue-100 dark:border-blue-800"
-          >
-            <Clock className="h-3 w-3" />
-            {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
-          </Badge>
+            )}
+            <div className="flex gap-2">
+              <Badge 
+                variant="outline" 
+                className="text-xs flex items-center gap-1 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 border-blue-100 dark:border-blue-800"
+              >
+                <Clock className="h-3 w-3" />
+                {post.hours || 0} {post.hours === 1 ? 'hour' : 'hours'} shift
+              </Badge>
+              <Badge 
+                variant="outline" 
+                className="text-xs flex items-center gap-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-200 border-green-100 dark:border-green-800"
+              >
+                <Clock className="h-3 w-3" />
+                {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
+              </Badge>
+            </div>
           </div>
         </div>
       </CardHeader>

@@ -20,6 +20,11 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
   const [currentCount, setCurrentCount] = useState(count);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Use the initial count from props
+  useEffect(() => {
+    setCurrentCount(count);
+  }, [count]);
+
   // Enhanced color palette with more professional and cohesive colors
   const reactionColors = {
     love: {
@@ -60,9 +65,7 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
     const checkUserReaction = async () => {
       if (isSignedIn && user?.id) {
         try {
-          const endpoint = process.env.NODE_ENV === 'development' 
-            ? '/api/reactions' 
-            : '/.netlify/functions/reactions';
+          const endpoint = '/api/reactions/check';
 
           const response = await fetch(endpoint, {
             method: 'POST',
@@ -71,25 +74,37 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
             },
             body: JSON.stringify({ 
               postId, 
-              userId: user.id 
+              userId: user.id,
+              reactionType
             }),
           });
           
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-          
-          const { hasReacted } = await response.json();
-          setIsReacted(hasReacted);
+
+          const text = await response.text();
+          if (!text) {
+            throw new Error('Empty response from server');
+          }
+
+          const data = JSON.parse(text);
+          if (!data || typeof data.hasReacted === 'undefined') {
+            throw new Error('Invalid response format');
+          }
+
+          setIsReacted(data.hasReacted);
         } catch (error) {
           console.error('Error checking reaction:', error);
           toast.error('Failed to check reaction status');
         }
+      } else {
+        setIsReacted(false);
       }
     };
+
     checkUserReaction();
-  }, [isSignedIn, postId, reactionType, user?.id]);
+  }, [isSignedIn, user?.id, postId, reactionType]);
 
   const handleReaction = async () => {
     if (!isSignedIn || !user?.id) {
@@ -101,9 +116,7 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
 
     setIsLoading(true);
     try {
-      const endpoint = process.env.NODE_ENV === 'development' 
-        ? '/api/reactions' 
-        : '/.netlify/functions/reactions';
+      const endpoint = '/api/reactions';
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -118,11 +131,19 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add reaction');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      const text = await response.text();
+      if (!text) {
+        throw new Error('Empty response from server');
+      }
+
+      const data = JSON.parse(text);
+      if (!data || typeof data.hasReacted === 'undefined' || typeof data.count === 'undefined') {
+        throw new Error('Invalid response format');
+      }
+
       setIsReacted(data.hasReacted);
       setCurrentCount(data.count);
       toast.success(
@@ -132,7 +153,7 @@ export default function ReactionButton({ postId, iconName, label, count, reactio
       );
     } catch (error) {
       console.error('Reaction error:', error);
-      toast.error(error.message);
+      toast.error(error.message || 'Failed to process reaction');
     } finally {
       setIsLoading(false);
     }

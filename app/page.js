@@ -25,6 +25,8 @@ import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import BlogPostActions from '@/components/BlogPostActions';
+import { Clock } from 'lucide-react';
 
 
 // Add this function to calculate weekly hours
@@ -114,14 +116,34 @@ export default function Home() {
   [posts]);
 
   // Optimize event handlers with useCallback
-  const handleDeletePost = useCallback((deletedPostId) => {
-    setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
-    setWeeklyPosts(prevWeeks => 
-      prevWeeks.map(week => ({
-        ...week,
-        posts: week.posts.filter(post => post.id !== deletedPostId)
-      }))
-    );
+  const handleDeletePost = useCallback(async (postId) => {
+    try {
+      const response = await fetch(`/api/blog/${postId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete post');
+      }
+
+      const result = await response.json();
+      
+      // Update the posts state to remove the deleted post
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+      
+      // Update the weekly posts state
+      setWeeklyPosts(prevWeeks => 
+        prevWeeks.map(week => ({
+          ...week,
+          posts: week.posts.filter(post => post.id !== postId)
+        }))
+      );
+
+      toast.success('Post deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error(error.message);
+    }
   }, []);
 
   const handleSignOut = useCallback(async () => {
@@ -186,6 +208,12 @@ export default function Home() {
 
         setWeeklyPosts(Object.values(postsByWeek).sort((a, b) => a.startDate - b.startDate));
         setPosts(processedPosts);
+
+        // Add this inside the useEffect after processing posts
+        console.log('Processed Posts:', processedPosts);
+        console.log('Scheduled Posts:', processedPosts.filter(post => 
+          post.status === 'scheduled' && new Date(post.publish_date) > new Date()
+        ));
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load data. Please try again later.');
@@ -485,40 +513,72 @@ export default function Home() {
           <div className="mt-12">
             <h2 className="text-2xl font-bold mb-4">Scheduled Posts</h2>
             <div className="space-y-6">
-              {scheduledPosts.map(post => (
-                <Card key={post.id} className="bg-yellow-50 dark:bg-yellow-900/20">
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <CardTitle>{post.title}</CardTitle>
-                      <div className="text-right">
-                        <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
-                          Scheduled: {format(new Date(post.publish_date), 'MMM d, yyyy')}
-                        </p>
-                        <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
-                          {post.hours} hours
-                        </Badge>
+              {scheduledPosts.map(post => {
+                const readingTime = Math.ceil((post.content?.replace(/<[^>]*>?/gm, '').split(/\s+/).length || 0) / 200);
+                const tags = Array.isArray(post.tags) ? post.tags : 
+                  typeof post.tags === 'string' ? post.tags.split(',') : [];
+                
+                return (
+                  <Card key={post.id} className="bg-yellow-50 dark:bg-yellow-900/20">
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <CardTitle>{post.title}</CardTitle>
+                        <div className="text-right">
+                          <p className="text-sm text-yellow-600 dark:text-yellow-300 mb-1">
+                            Scheduled: {format(new Date(post.publish_date), 'MMM d, yyyy')}
+                          </p>
+                          <div className="flex gap-2">
+                            <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {post.hours || 0} {post.hours === 1 ? 'hour' : 'hours'} shift
+                            </Badge>
+                            <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p>{post.excerpt || 'No excerpt available'}</p>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <div className="flex gap-2">
-                      {post.tags?.map(tag => (
-                        <Badge key={tag} variant="secondary">{tag}</Badge>
-                      ))}
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => router.push(`/blog/${post.id}`)}
-                    >
-                      Read More
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                    </CardHeader>
+                    <CardContent>
+                      <p>{post.excerpt || 'No excerpt available'}</p>
+                      {tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-4">
+                          {tags.slice(0, 6).map((tag, index) => (
+                            <Badge 
+                              key={`${tag}-${index}`}
+                              variant="secondary" 
+                              className="text-xs bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                          {tags.length > 6 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{tags.length - 6} more
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                    <CardFooter className="flex justify-between">
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => router.push(`/blog/${post.id}`)}
+                        >
+                          Read More
+                        </Button>
+                        <BlogPostActions 
+                          postId={post.id} 
+                          postUserId={post.user_id} 
+                        />
+                      </div>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
               {scheduledPosts.length === 0 && (
                 <Card>
                   <CardContent className="p-6">

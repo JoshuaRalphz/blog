@@ -19,14 +19,9 @@ const buildQuery = (userId, filters = {}) => {
   if (filters.status) {
     query = query.eq('status', filters.status);
   } else {
-    // Show only published posts for public access
-    query = query.eq('status', 'published');
+    // Show both published and scheduled posts for public access
+    query = query.in('status', ['published', 'scheduled']);
   }
-
-  // Remove user filter for public access
-  // if (userId) {
-  //   query = query.eq('user_id', userId);
-  // }
 
   // Apply date range filter if provided
   if (filters.startDate && filters.endDate) {

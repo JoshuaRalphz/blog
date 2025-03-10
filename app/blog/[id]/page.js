@@ -18,6 +18,7 @@ import AuthorInfo from '@/components/AuthorInfo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import BlogPostActions from '@/components/BlogPostActions';
 import BackButton from '@/components/BackButton';
+import { getReactionCounts } from '@/utils/getReactionCounts';
 
 export default async function BlogPostPage({ params }) {
   const { id } = await params;
@@ -25,6 +26,9 @@ export default async function BlogPostPage({ params }) {
 
   const post = await getBlogPostById(id);
   console.log('Fetched blog post:', post);
+
+  // Fetch reaction counts
+  const reactionCounts = await getReactionCounts(id);
 
   if (!post) {
     notFound();
@@ -82,29 +86,6 @@ export default async function BlogPostPage({ params }) {
   };
 
   const readingTimeMinutes = calculateReadingTime(post.content);
-
-  // Add these functions for handling reactions
-  const handleReaction = async (reactionType) => {
-    try {
-      const response = await fetch('/.netlify/functions/reactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          postId: post.id,
-          reactionType,
-          userId: user.id
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to add reaction');
-      const data = await response.json();
-      // Update local state or refetch post data
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-12 pb-16">
@@ -181,21 +162,21 @@ export default async function BlogPostPage({ params }) {
               <ReactionButton
                 iconName="Heart"
                 label="Love"
-                count={post.reactions?.love || 0}
+                count={reactionCounts.love || 0}
                 postId={post.id}
                 reactionType="love"
               />
               <ReactionButton
                 iconName="Smile"
                 label="Wow"
-                count={post.reactions?.wow || 0}
+                count={reactionCounts.wow || 0}
                 postId={post.id}
                 reactionType="wow"
               />
               <ReactionButton
                 iconName="Laugh"
                 label="Haha"
-                count={post.reactions?.haha || 0}
+                count={reactionCounts.haha || 0}
                 postId={post.id}
                 reactionType="haha"
               />

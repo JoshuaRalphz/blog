@@ -14,10 +14,11 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // Fetch only from blog_posts
+    // Fetch only published posts from blog_posts
     const { data, error } = await supabase
       .from('blog_posts')
       .select('publish_date, hours')
+      .eq('status', 'published')
       .order('publish_date', { ascending: false });
 
     if (error) {

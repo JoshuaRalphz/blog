@@ -7,8 +7,6 @@ const isPublicRoute = createRouteMatcher([
   '/api(.*)', // Allow API routes to handle their own auth
 ])
 
-const isInstructorRoute = createRouteMatcher(['/instructor(.*)'])
-
 export default clerkMiddleware((auth, req) => {
   if (!isPublicRoute(req)) {
     auth().protect({

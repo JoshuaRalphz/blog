@@ -36,6 +36,7 @@ export default function NewBlogPage() {
   const readTimeRef = useRef('0 min');
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [readTime, setReadTime] = useState(0);
 
   // Load saved data on component mount
   useEffect(() => {
@@ -96,6 +97,18 @@ export default function NewBlogPage() {
   useEffect(() => {
     const readTime = calculateReadTime(content);
     readTimeRef.current = readTime;
+  }, [content]);
+
+  // Function to calculate reading time
+  const calculateReadTime = (text) => {
+    const words = text.split(/\s+/).length;
+    const minutes = Math.ceil(words / 200); // Average reading speed: 200 words per minute
+    return minutes < 1 ? 1 : minutes;
+  };
+
+  // Update readTime whenever content changes
+  useEffect(() => {
+    setReadTime(calculateReadTime(content));
   }, [content]);
 
   const handleTitleChange = (e) => {
@@ -521,6 +534,10 @@ export default function NewBlogPage() {
       </Tabs>
 
       {showPublishConfirmation && <PublishConfirmationModal />}
+
+      <div className="text-sm text-muted-foreground">
+        Reading time: {readTime} minute{readTime !== 1 ? 's' : ''}
+      </div>
     </div>
   );
 }
