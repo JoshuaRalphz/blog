@@ -241,11 +241,11 @@ export default function Home() {
     };
 
     fetchData();
-  }, []);
+  }, [supabase]);
   
   // Calculate totals with safe defaults
 
-  const supabase = createClient(
+  const supabase = useMemo(() => createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
@@ -253,7 +253,7 @@ export default function Home() {
         persistSession: false
       }
     }
-  );
+  ), []);
 
   // Modify the posts fetching useEffect similarly
   useEffect(() => {
