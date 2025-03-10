@@ -4,4 +4,4 @@ const nextConfig = {
   distDir: 'out', // This specifies the output directory
 };
 
-module.exports = nextConfig;
+export default nextConfig;
