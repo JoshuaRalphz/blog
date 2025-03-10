@@ -192,7 +192,7 @@ export default function CalendarComponent({
               <div className="mt-6 border-t pt-4 dark:border-gray-800">
                 <h3 className="text-sm font-medium mb-2 flex items-center dark:text-gray-200">
                   <Filter className="h-4 w-4 mr-1" />
-                  {format(selectedDate, 'MMMM d, yyyy')} ({selectedDatePosts.length} post{selectedDatePosts.length > 1 ? 's' : ''})
+                  {format(selectedDate, 'MMMM d, yyyy')} 
                 </h3>
                 <div className="space-y-2 max-h-40 overflow-auto">
                   {selectedDatePosts.map((post, idx) => (
