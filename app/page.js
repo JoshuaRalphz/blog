@@ -77,6 +77,17 @@ export default function Home() {
   const { signOut } = useClerk();
   const [selectedDate, setSelectedDate] = useState(new Date());
   
+  // Initialize supabase first
+  const supabase = useMemo(() => createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      auth: {
+        persistSession: false
+      }
+    }
+  ), []);
+
   // Blog date range
   const startDate = new Date(2025, 1, 5); // Feb 5, 2025
   const endDate = new Date(2025, 3, 15);  // April 15, 2025
@@ -244,16 +255,6 @@ export default function Home() {
   }, [supabase]);
   
   // Calculate totals with safe defaults
-
-  const supabase = useMemo(() => createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      auth: {
-        persistSession: false
-      }
-    }
-  ), []);
 
   // Modify the posts fetching useEffect similarly
   useEffect(() => {
