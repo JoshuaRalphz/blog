@@ -5,10 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && next export",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "cron": "node netlify/functions/schedule-posts.js",
     "postinstall": "npm dedupe"
   },
   "dependencies": {

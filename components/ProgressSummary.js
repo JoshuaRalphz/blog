@@ -1,3 +1,12 @@
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Progress
+} from '@/components/ui/card';
+
 export default function ProgressSummary({ hoursCompleted, hoursRemaining, completionPercentage }) {
   return (
     <Card className="mb-8 dark:bg-gray-800 dark:border-gray-700">

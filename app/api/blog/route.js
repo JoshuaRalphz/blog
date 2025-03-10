@@ -107,6 +107,10 @@ export async function POST(request) {
         published_at: data[0].published_at
       } 
     });
+
+    if (status === 'scheduled') {
+      // Add any additional handling for scheduled posts if needed
+    }
   } catch (error) {
     console.error('Error creating blog post:', error);
     return NextResponse.json({ 

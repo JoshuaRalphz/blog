@@ -160,6 +160,20 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // First, check for scheduled posts that need to be published
+        const now = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from('blog_posts')
+          .update({ 
+            status: 'published',
+            published_at: now
+          })
+          .lte('publish_date', now)
+          .eq('status', 'scheduled');
+
+        if (updateError) throw updateError;
+
+        // Then fetch the updated posts
         const [hoursResponse, postsResponse] = await Promise.all([
           fetchWithRetry('/api/hours'),
           fetchWithRetry('/api/blog/posts')
@@ -217,7 +231,6 @@ export default function Home() {
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load data. Please try again later.');
-        // Set default values to prevent app crash
         setHoursData([]);
         setPosts([]);
         setWeeklyPosts([]);
