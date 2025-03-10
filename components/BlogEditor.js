@@ -371,7 +371,7 @@ export default function BlogEditor({
         <div className="flex items-center gap-2">
           <CheckCircle2 className="h-3 w-3 text-green-500" />
           <span>
-              'has real time saved system'
+              has real time saved system
           </span>
         </div>
         <div>

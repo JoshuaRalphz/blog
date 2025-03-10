@@ -93,7 +93,10 @@ export default function NewBlogPage() {
     setLastSaved(new Date());
   }, [title, content, hours, tags, description, publishDate, wordCount, readTime]);
 
-
+  useEffect(() => {
+    const readTime = calculateReadTime(content);
+    setReadTime(readTime);
+  }, [content]);
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
