@@ -8,6 +8,11 @@ const supabase = createClient(
 
 export async function GET(request) {
   try {
+    // Health check
+    if (request.headers.get('x-health-check')) {
+      return NextResponse.json({ status: 'healthy' });
+    }
+
     const ip = request.headers.get('x-forwarded-for') || request.ip;
     console.log(`Cron job request from IP: ${ip}`);
 
