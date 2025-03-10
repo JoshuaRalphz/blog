@@ -18,6 +18,9 @@ import { format } from "date-fns";
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useRouter } from 'next/navigation';
 import { Slider } from '@/components/ui/slider';
+import { postSchema } from '@/lib/schemas';
+import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function NewBlogPage() {
   const { user } = useUser();
@@ -25,7 +28,6 @@ export default function NewBlogPage() {
   const [content, setContent] = useState('');
   const [hours, setHours] = useState(8);
   const [tags, setTags] = useState('');
-  const [description, setDescription] = useState('');
   const [publishDate, setPublishDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState('editor');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +39,16 @@ export default function NewBlogPage() {
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const readTime = useRef(0);
+  const [validationErrors, setValidationErrors] = useState({
+    title: { valid: true, message: '' },
+    content: { valid: true, message: '' },
+    tags: { valid: true, message: '' }
+  });
+
+  // Add dynamic UI states
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const [isTagsFocused, setIsTagsFocused] = useState(false);
+  const [isContentFocused, setIsContentFocused] = useState(false);
 
   // Load saved data on component mount
   useEffect(() => {
@@ -48,7 +60,6 @@ export default function NewBlogPage() {
           content, 
           hours = 8, 
           tags, 
-          description, 
           publishDate, 
           wordCount =  
           readTime = '0 min' 
@@ -58,7 +69,6 @@ export default function NewBlogPage() {
         setContent(content || '');
         setHours(hours || 8);
         setTags(tags || '');
-        setDescription(description || '');
         if (publishDate) setPublishDate(new Date(publishDate));
         setWordCount(wordCount);
         readTimeRef.current = readTime;
@@ -84,7 +94,6 @@ export default function NewBlogPage() {
       content,
       hours,
       tags,
-      description,
       publishDate: publishDate.toISOString(),
       wordCount,
       readTime: readTimeRef.current,
@@ -92,12 +101,32 @@ export default function NewBlogPage() {
     };
     localStorage.setItem('draftBlogPost', JSON.stringify(saveData));
     setLastSaved(new Date());
-  }, [title, content, hours, tags, description, publishDate, wordCount, readTimeRef]);
+  }, [title, content, hours, tags, publishDate, wordCount, readTimeRef]);
 
   useEffect(() => {
     const words = content.split(/\s+/).length;
     readTime.current = Math.ceil(words / 200);
   }, [content]);
+
+  useEffect(() => {
+    const errors = {
+      title: validateField('title', title),
+      content: { valid: true, message: '' },
+      tags: validateField('tags', tagList)
+    };
+
+    // Add explicit check for empty content
+    if (!content || content.trim().length === 0) {
+      errors.content = { valid: false, message: 'Content is required' };
+    } else if (content.length < 20) {
+      errors.content = { valid: false, message: 'Content must be at least 20 characters' };
+    }
+
+    setValidationErrors(prev => ({
+      ...prev,
+      ...errors
+    }));
+  }, [title, content, tagList]);
 
   const handleTitleChange = (e) => {
     setTitle(e.target.value);
@@ -116,6 +145,17 @@ export default function NewBlogPage() {
   const handleSubmit = async (e) => {
     e?.preventDefault();
     
+    // Check content validation explicitly
+    if (!content || content.trim().length === 0) {
+      toast.error('Content is required');
+      return;
+    }
+
+    if (Object.values(validationErrors).some(error => !error.valid)) {
+      toast.error('Please fix the validation errors before submitting');
+      return;
+    }
+
     if (!user?.id) {
       toast.error('Please sign in to create a blog post');
       return;
@@ -133,7 +173,6 @@ export default function NewBlogPage() {
       const requestBody = {
         title,
         content,
-        description,
         hours,
         tags: formattedTags,
         publish_date: publishDate.toISOString()
@@ -202,8 +241,82 @@ export default function NewBlogPage() {
     </div>
   );
 
+  // Update validation to show real-time feedback
+  const validateField = (field, value) => {
+    try {
+      const fieldSchema = postSchema.shape[field];
+      if (!fieldSchema) {
+        return { valid: false, message: 'Invalid field' };
+      }
+
+      fieldSchema.parse(value);
+      return { valid: true, message: '' };
+    } catch (error) {
+      return { 
+        valid: false, 
+        message: error?.errors?.[0]?.message || 'Invalid value'
+      };
+    }
+  };
+
+  // Update the input components with dynamic styling
+  const getInputClass = (field) => {
+    const error = validationErrors[field];
+    return cn(
+      'transition-all duration-300',
+      {
+        'border-red-500': !error.valid && error.isFocused,
+        'ring-2 ring-red-500/50': !error.valid && error.isFocused,
+        'border-green-500': error.valid && error.isFocused,
+        'ring-2 ring-green-500/50': error.valid && error.isFocused
+      }
+    );
+  };
+
+  // Add real-time character counters
+  const CHAR_LIMITS = {
+    title: 100,
+    description: 200
+  };
+
+  // Add these components near the inputs
+  {isTitleFocused && (
+    <div className="text-xs text-muted-foreground mt-1">
+      {title.length}/{CHAR_LIMITS.title} characters
+    </div>
+  )}
+
+  // Update the ValidationReminder component
+  const ValidationReminder = () => {
+    const activeErrors = Object.entries(validationErrors)
+      .filter(([_, error]) => !error.valid);
+
+    if (activeErrors.length === 0) return null;
+
+    return (
+      <div 
+        className="fixed top-5 right-5 bg-background border border-red-500/20 rounded-lg shadow-lg p-4 max-w-xs"
+        style={{ zIndex: 9999999 }}
+      >
+        <h3 className="font-medium text-red-500 mb-2">Requirements</h3>
+        <ul className="text-sm text-muted-foreground space-y-1">
+          {activeErrors.map(([field, error]) => (
+            <li key={field} className="flex items-center gap-2">
+              <span className="text-red-500">•</span>
+              <div>
+                <span className="capitalize">{field}: </span>
+                {error.message}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   return (
     <div className="container max-w-6xl py-8 mx-auto px-4">
+      <ValidationReminder />
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <div>
@@ -250,14 +363,22 @@ export default function NewBlogPage() {
                   id="title"
                   value={title}
                   onChange={handleTitleChange}
+                  onFocus={() => setIsTitleFocused(true)}
+                  onBlur={() => setIsTitleFocused(false)}
                   placeholder="Enter an attention-grabbing title"
-                  className="text-lg"
+                  className={cn('text-lg', getInputClass('title'))}
                   required
                 />
               </div>        
               <div className="space-y-2">
                 <Label>Content</Label>
-                <div className="w-full">
+                <div className={cn(
+                  'w-full border rounded-lg overflow-hidden transition-all duration-300',
+                  getInputClass('content')
+                )}
+                  onFocus={() => setIsContentFocused(true)}
+                  onBlur={() => setIsContentFocused(false)}
+                >
                   <ErrorBoundary>
                     <BlogEditor 
                       content={content} 
@@ -362,7 +483,10 @@ export default function NewBlogPage() {
                   id="tags"
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
+                  onFocus={() => setIsTagsFocused(true)}
+                  onBlur={() => setIsTagsFocused(false)}
                   placeholder="e.g. technology, programming, tutorial"
+                  className={getInputClass('tags')}
                 />
                 <div className="flex flex-wrap gap-2 mt-2">
                   {tagList.map((tag, index) => (
@@ -403,7 +527,9 @@ export default function NewBlogPage() {
                 Continue to Preview
                 <span className="ml-1">→</span>
               </Button>
+              
             </CardFooter>
+            
           </Card>
         </TabsContent>
         
@@ -449,12 +575,6 @@ export default function NewBlogPage() {
                   </div>
                 </div>
                 
-                {description && (
-                  <div className="mb-4 text-lg text-muted-foreground italic border-l-4 border-primary/20 pl-4 py-2">
-                    {description}
-                  </div>
-                )}
-                
                 <div className="flex flex-wrap gap-2 mb-4">
                   {tagList.map((tag, index) => (
                     <Badge key={index} variant="outline">
@@ -485,7 +605,7 @@ export default function NewBlogPage() {
               <Button 
                 type="button"
                 onClick={handlePublishConfirmation}
-                disabled={isSubmitting}
+                disabled={isSubmitting || Object.values(validationErrors).some(error => !error.valid) || !content || content.trim().length === 0}
                 className="flex items-center gap-2"
               >
                 <Send className="h-4 w-4" />
@@ -519,13 +639,10 @@ export default function NewBlogPage() {
             </div>
           </div>
         </TabsContent>
+        
       </Tabs>
 
       {showPublishConfirmation && <PublishConfirmationModal />}
-
-      <div className="text-sm text-muted-foreground">
-        Reading time: {readTime.current} minute{readTime.current !== 1 ? 's' : ''}
-      </div>
     </div>
   );
 }

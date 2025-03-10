@@ -1,44 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getAuthData } from '@/utils/clerkAuth';
-import { z } from 'zod';
+import { postSchema } from '@/lib/schemas';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_SERVICE_KEY
 );
 
-const postSchema = z.object({
-  title: z.string().min(1),
-  content: z.string().min(1),
-  hours: z.number().min(0),
-  tags: z.array(z.string()),
-  publish_date: z.string().datetime()
-});
-
 // Format tags properly
 const formatTags = (tags) => {
-  if (Array.isArray(tags)) {
-    return tags;
-  }
-  
-  try {
-    if (typeof tags === 'string') {
-      // Handle JSON strings
-      if (tags.startsWith('[') && tags.endsWith(']')) {
-        return JSON.parse(tags);
-      }
-      // Handle JSON-like strings
-      if (tags.startsWith('{') && tags.endsWith('}')) {
-        return JSON.parse(tags.replace(/^\{/, '[').replace(/\}$/, ']'));
-      }
-      // Handle comma-separated strings
-      return tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
-    }
-  } catch (error) {
-    console.error('Error formatting tags:', error);
-  }
-  
+  if (Array.isArray(tags)) return tags;
+  if (typeof tags === 'string') return tags.split(',').map(tag => tag.trim());
   return [];
 };
 
@@ -54,7 +27,7 @@ export async function POST(request) {
       }, { status: 500 });
     }
 
-    // Validate request
+    // Get authenticated user
     const { clerkUserId } = await getAuthData(request);
     if (!clerkUserId) {
       return NextResponse.json({ 
@@ -67,20 +40,11 @@ export async function POST(request) {
 
     // Parse and validate request body
     const body = await request.json();
-    try {
-      const validatedData = postSchema.parse(body);
-    } catch (validationError) {
-      return NextResponse.json({
-        error: {
-          message: 'Validation failed',
-          code: 'VALIDATION_ERROR',
-          details: validationError.errors.map(err => ({
-            field: err.path.join('.'),
-            message: err.message
-          }))
-        }
-      }, { status: 400 });
-    }
+    const validatedData = postSchema.parse({
+      ...body,
+      hours: Number(body.hours),
+      publish_date: new Date(body.publish_date).toISOString()
+    });
 
     // Format tags properly
     const formattedTags = formatTags(validatedData.tags);
@@ -108,29 +72,18 @@ export async function POST(request) {
       .select();
 
     if (error) throw error;
-    if (!data || data.length === 0) throw new Error('Failed to create post - no data returned');
-
-    // Return success response
-    return NextResponse.json({ 
-      data: {
-        id: data[0].id,
-        status: data[0].status,
-        publish_date: data[0].publish_date,
-        published_at: data[0].published_at
-      } 
-    });
-
-    if (status === 'scheduled') {
-      // Add any additional handling for scheduled posts if needed
-    }
+    
+    return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
     console.error('Error creating blog post:', error);
-    return NextResponse.json({ 
-      error: {
-        message: error.message,
-        code: error.code || 'SERVER_ERROR',
-        details: error.details || []
-      } 
-    }, { status: error.status || 500 });
+    return NextResponse.json(
+      { 
+        error: {
+          message: error.message || 'Failed to create blog post',
+          code: 'SERVER_ERROR'
+        } 
+      }, 
+      { status: 500 }
+    );
   }
 } 

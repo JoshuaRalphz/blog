@@ -203,8 +203,10 @@ export default function BlogEditor({
     { title: "Keyboard Shortcuts", content: "- Bold: Ctrl+B\n- Italic: Ctrl+I\n- Heading: Ctrl+Alt+1-6\n- Undo: Ctrl+Z\n- Redo: Ctrl+Shift+Z" },
   ];
 
-  // Inside your editor change handler
+  // Update the editor change handler to properly set content
   editor.on('update', () => {
+    const html = editor.getHTML();
+    setContent(html);
     const event = new Event('editor-change');
     window.dispatchEvent(event);
   });
