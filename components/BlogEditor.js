@@ -346,18 +346,18 @@ export default function BlogEditor({
             variant="ghost"
             size="sm"
             onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-1"
+            className="hidden md:flex items-center gap-1"
             type="button"
           >
             {showPreview ? (
               <>
                 <EyeOff className="h-4 w-4" />
-                Hide Preview
+                <span className="hidden lg:inline">Hide Preview</span>
               </>
             ) : (
               <>
                 <Eye className="h-4 w-4" />
-                Show Preview
+                <span className="hidden lg:inline">Show Preview</span>
               </>
             )}
           </Button>

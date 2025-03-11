@@ -171,40 +171,33 @@ export function Toolbar({ editor }) {
       </Button>
 
       <CldUploadWidget
-        key={Date.now()}
         uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
         options={{
-          sources: ['local'],
-          multiple: false,
-          maxFiles: 1,
-          clientAllowedFormats: ['image'],
-          cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+          resourceType: 'image',
+          maxFileSize: 5000000,
+          multiple: true
         }}
-        onSuccess={(result) => {
-          handleImageUpload(result.info.secure_url);
-        }}
+        onSuccess={(result) => handleImageUpload(result.info.secure_url)}
       >
-        {({ open }) => {
-          return (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                if (typeof open === 'function') {
-                  open();
-                } else {
-                  console.error('Cloudinary upload widget not initialized');
-                  toast.error('Image upload is currently unavailable');
-                }
-              }}
-              aria-label="Insert image"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </Button>
-          );
-        }}
+        {({ open }) => (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault();
+              if (typeof open === 'function') {
+                open();
+              } else {
+                console.error('Cloudinary upload widget not initialized');
+                toast.error('Image upload is currently unavailable');
+              }
+            }}
+            aria-label="Insert image"
+          >
+            <ImageIcon className="h-4 w-4" />
+          </Button>
+        )}
       </CldUploadWidget>
     </div>
   );

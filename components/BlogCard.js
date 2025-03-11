@@ -101,34 +101,34 @@ export default function BlogCard({ post, onDelete }) {
   return (
     <Card className="overflow-hidden border-border dark:border-gray-700 transition-all duration-300 group hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-primary/5">
       <CardHeader className="pb-2 space-y-1">
-        <div className="flex justify-between items-start gap-4">
-          <CardTitle className="text-[33px] font-semibold tracking-tight group-hover:text-primary transition-colors duration-200">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <CardTitle className="text-2xl md:text-[33px] font-semibold tracking-tight group-hover:text-primary transition-colors duration-200">
             {post.title}
           </CardTitle>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
             {post.status === 'scheduled' ? (
-              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs">
+              <Badge variant="outline" className="w-full sm:w-auto border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs">
                 <Calendar className="h-3 w-3 mr-1" />
                 {format(new Date(post.published_at), 'MMM d, yyyy')}
               </Badge>
             ) : (
-              <span className="text-sm text-muted-foreground flex items-center">
+              <span className="text-sm text-muted-foreground flex items-center w-full sm:w-auto">
                 <Calendar className="h-3 w-3 mr-1 opacity-70" />
                 {formatDate(post.publish_date)}
               </span>
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Badge 
                 variant="outline" 
-                className="text-xs flex items-center gap-1 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 border-blue-100 dark:border-blue-800"
+                className="w-full sm:w-auto text-xs flex items-center gap-1 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 border-blue-100 dark:border-blue-800"
               >
                 <Clock className="h-3 w-3" />
                 {post.hours || 0} {post.hours === 1 ? 'hour' : 'hours'} shift
               </Badge>
               <Badge 
                 variant="outline" 
-                className="text-xs flex items-center gap-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-200 border-green-100 dark:border-green-800"
+                className="w-full sm:w-auto text-xs flex items-center gap-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-200 border-green-100 dark:border-green-800"
               >
                 <Clock className="h-3 w-3" />
                 {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
@@ -139,13 +139,13 @@ export default function BlogCard({ post, onDelete }) {
       </CardHeader>
       
       <CardContent className="pt-2 pb-4">
-        <p className="text-muted-foreground leading-relaxed text-md line-clamp-3">
+        <p className="text-muted-foreground leading-relaxed text-sm md:text-md line-clamp-3">
           {getExcerpt(post.content)}
         </p>
       </CardContent>
       
       <CardFooter className="flex flex-col sm:flex-row sm:justify-between gap-3 pt-3 border-t border-border/40 dark:border-gray-700/40">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
           {tags.length > 0 ? (
             tags.slice(0, 6).map((tag, index) => (
               <Badge 
@@ -163,17 +163,15 @@ export default function BlogCard({ post, onDelete }) {
               +{tags.length - 6} more
             </Badge>
           ) : null}
-          
-
         </div>
         
         <Button 
           asChild 
           size="sm" 
           variant="ghost" 
-          className="group self-end px-3 py-1 h-8 hover:bg-primary/10 hover:text-primary transition-all"
+          className="group self-end px-3 py-1 h-8 hover:bg-primary/10 hover:text-primary transition-all w-full sm:w-auto mt-2 sm:mt-0"
         >
-          <Link href={`/blog/${post.id}`} className="flex items-center gap-1 text-sm font-medium">
+          <Link href={`/blog/${post.id}`} className="flex items-center gap-1 text-sm font-medium justify-center sm:justify-start">
             Read more
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
