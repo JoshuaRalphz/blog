@@ -131,13 +131,6 @@ export default function BlogCard({ post, onDelete }) {
                 <Clock className="h-3 w-3" />
                 {post.hours || 0} {post.hours === 1 ? 'hour' : 'hours'} shift
               </Badge>
-              <Badge 
-                variant="outline" 
-                className="w-full sm:w-auto text-xs flex items-center gap-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-200 border-green-100 dark:border-green-800"
-              >
-                <Clock className="h-3 w-3" />
-                {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
-              </Badge>
             </div>
           </div>
         </div>
