@@ -19,6 +19,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import BlogPostActions from '@/components/BlogPostActions';
 import BackButton from '@/components/BackButton';
 import { getReactionCounts } from '@/utils/getReactionCounts';
+import { SignedOut, SignInButton } from '@clerk/nextjs';
 
 export default async function BlogPostPage({ params }) {
   const { id } = await params;
@@ -199,6 +200,21 @@ export default async function BlogPostPage({ params }) {
           </CardFooter>
         </Card>
       </div>
+
+      {/* Fixed Sign In Button */}
+      <SignedOut>
+        <div className="fixed bottom-4 right-4 z-50">
+          <SignInButton mode="modal">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="text-sm shadow-lg hover:shadow-xl transition-shadow"
+            >
+              Sign In
+            </Button>
+          </SignInButton>
+        </div>
+      </SignedOut>
     </div>
   );
 }
