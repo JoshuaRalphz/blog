@@ -79,7 +79,7 @@ export async function PUT(request, { params }) {
       .update({
         ...updateData,
         status: status,
-        published_at: status === 'published' ? new Date().toISOString() : publishDate.toISOString(),
+        published_at: status === 'published' ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)

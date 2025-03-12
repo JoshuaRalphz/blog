@@ -65,7 +65,7 @@ export async function POST(request) {
         tags: formattedTags,
         publish_date: validatedData.publish_date,
         status: status,
-        published_at: status === 'published' ? new Date().toISOString() : publishDate.toISOString(),
+        published_at: status === 'published' ? new Date().toISOString() : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])

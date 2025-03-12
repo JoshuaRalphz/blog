@@ -83,7 +83,12 @@ export default function BlogCard({ post, onDelete }) {
 
   const formatDate = (dateString) => {
     try {
-      return format(new Date(dateString), 'MMM d, yyyy');
+      if (!dateString) return 'Not yet published'; // Handle null dates
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date');
+      }
+      return format(date, 'MMM d, yyyy');
     } catch (error) {
       console.error('Invalid date:', dateString);
       return 'Date unavailable';
@@ -108,15 +113,15 @@ export default function BlogCard({ post, onDelete }) {
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
             {post.status === 'scheduled' ? (
-              <Badge variant="outline" className="w-full sm:w-auto border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300 text-xs">
+              <Badge variant="outline" className="w-full sm:w-auto border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-800/30 dark:text-gray-300 text-xs">
                 <Calendar className="h-3 w-3 mr-1" />
-                {format(new Date(post.published_at), 'MMM d, yyyy')}
+                {formatDate(post.publish_date)}
               </Badge>
             ) : (
-              <span className="text-sm text-muted-foreground flex items-center w-full sm:w-auto">
+              <Badge variant="outline" className="w-full sm:w-auto border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-800/30 dark:text-gray-300 text-xs">
                 <Calendar className="h-3 w-3 mr-1 opacity-70" />
-                {formatDate(post.publish_date)}
-              </span>
+                {formatDate(post.published_at || post.publish_date)}
+              </Badge>
             )}
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Badge 
