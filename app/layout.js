@@ -30,9 +30,19 @@ export default function RootLayout({ children }) {
             enableSystem
             disableTransitionOnChange
           >
+            <Toaster
+              position="bottom-right"
+              containerStyle={{
+                bottom: '3rem',
+              }}
+              toastOptions={{
+                style: {
+                  marginBottom: '1rem',
+                },
+              }}
+            />
             {children}
           </ThemeProvider>
-          <Toaster position="bottom-center" />
         </body>
       </html>
     </ClerkProvider>
