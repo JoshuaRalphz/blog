@@ -8,6 +8,7 @@ import { BarChart, Clock, CalendarDays, Filter } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import { useUser } from '@clerk/nextjs';
 
 export default function CalendarComponent({ 
   selectedDate, 
@@ -17,12 +18,24 @@ export default function CalendarComponent({
   posts,
   weeklyHours
 }) {
+  const { user } = useUser();
   const today = new Date();
   
+  // Check if user is authorized to view future posts
+  const canViewFuturePosts = user?.id === process.env.NEXT_PUBLIC_AUTHOR_USER_ID;
+
   // Group posts by date for easier lookup
   const postsByDate = {};
   posts
-    .filter(post => post.status === 'published') // Only include published posts
+    .filter(post => {
+      const postDate = new Date(post.publish_date);
+      const isFuture = postDate > new Date();
+      
+      // Include posts based on user permissions
+      return (post.status === 'published' || 
+             (post.status === 'scheduled' && 
+              (!isFuture || canViewFuturePosts)));
+    })
     .forEach(post => {
       const dateStr = new Date(post.publish_date).toDateString();
       if (!postsByDate[dateStr]) {
@@ -80,7 +93,10 @@ export default function CalendarComponent({
       const month = new Date(now.getFullYear(), i, 1);
       const monthPosts = posts.filter(post => {
         const postDate = new Date(post.publish_date);
-        return post.status === 'published' && // Only include published posts
+        const isFuture = postDate > new Date();
+        
+        return (post.status === 'published' || 
+               (post.status === 'scheduled' && !isFuture)) &&
                postDate.getMonth() === i && 
                postDate.getFullYear() === now.getFullYear();
       });
@@ -144,7 +160,7 @@ export default function CalendarComponent({
               disabled={(date) => 
                 date < startDate || 
                 date > endDate || 
-                date > new Date()
+                (date > new Date() && !canViewFuturePosts)
               }
               className="rounded-lg border border-gray-200 dark:border-gray-800 justify-items-center w-full mx-auto h-102 shadow-sm"
               classNames={{
@@ -192,6 +208,7 @@ export default function CalendarComponent({
                   const posts = postsByDate[dateStr] || [];
                   const postCount = posts.length;
                   const isCurrentMonth = isSameMonth(date, props.displayMonth);
+                  const hasScheduled = posts.some(post => post.status === 'scheduled');
                   
                   return (
                     <div 
@@ -202,7 +219,8 @@ export default function CalendarComponent({
                         className={`absolute inset-1 rounded-full 
                           ${getHeatClass(postCount)} 
                           transition-all duration-200 
-                          ${selectedDate && isSameDay(date, selectedDate) ? 'ring-2 ring-indigo-600 dark:ring-indigo-400' : ''}`}
+                          ${selectedDate && isSameDay(date, selectedDate) ? 'ring-2 ring-indigo-600 dark:ring-indigo-400' : ''}
+                          ${hasScheduled ? 'ring-2 ring-indigo-600 dark:ring-indigo-400' : ''}`}
                       ></div>
                       <span className={`z-10 relative text-sm font-medium 
                         ${postCount > 0 ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
