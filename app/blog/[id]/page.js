@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
   Clock, 
-  Calendar, 
+  Calendar,
+  FileText,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import ReactionButton from '@/components/ReactionButton';
@@ -75,18 +76,15 @@ export default async function BlogPostPage({ params }) {
     }
   };
 
-  // Calculate reading time based on word count
-  const calculateReadingTime = (content) => {
+  // Calculate word count
+  const calculateWordCount = (content) => {
     // Strip HTML tags to get just the text
     const text = content.replace(/<[^>]*>?/gm, '');
     // Count words (approximately)
-    const wordCount = text.split(/\s+/).length;
-    // Average reading speed: 200 words per minute
-    const minutes = Math.ceil(wordCount / 200);
-    return minutes < 1 ? 1 : minutes;
+    return text.split(/\s+/).filter(Boolean).length;
   };
 
-  const readingTimeMinutes = calculateReadingTime(post.content);
+  const wordCount = calculateWordCount(post.content);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-12 pb-16">
@@ -112,8 +110,8 @@ export default async function BlogPostPage({ params }) {
 
               <Separator orientation="vertical" className="h-4" />
               <span className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 opacity-70" />
-                {readingTimeMinutes} {readingTimeMinutes === 1 ? 'minute' : 'minutes'} read
+                <FileText className="h-4 w-4 opacity-70" />
+                {wordCount} words
               </span>
 
               <Separator orientation="vertical" className="h-4" />

@@ -13,7 +13,8 @@ import {
   HelpCircle, 
   Eye,
   EyeOff,
-  CheckCircle2
+  CheckCircle2,
+  FileText
 } from 'lucide-react';
 import {
   Tooltip,
@@ -103,9 +104,6 @@ export default function BlogEditor({
       const text = editor.getText();
       const words = text.trim().split(/\s+/).filter(Boolean);
       setWordCount(words.length);
-      
-      const minutes = Math.ceil(words.length / 200);
-      setReadTime(`${minutes} min${minutes !== 1 ? 's' : ''}`);
     },
     editorProps: {
       attributes: {
@@ -371,10 +369,8 @@ export default function BlogEditor({
             <div className="flex items-center justify-between px-4 py-2 bg-muted/30">
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className="flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
                   <span className="text-xs font-medium">{wordCount} words</span>
-                </Badge>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <span className="text-xs font-medium">{readTime} read</span>
                 </Badge>
               </div>
             </div>
@@ -425,7 +421,7 @@ export default function BlogEditor({
           </span>
         </div>
         <div>
-          <span>{wordCount} words • {readTime}</span>
+          <span>{wordCount} words</span>
         </div>
       </div>
     </div>

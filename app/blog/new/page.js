@@ -465,6 +465,7 @@ export default function NewBlogPage() {
                         selected={publishDate}
                         onSelect={(date) => date && setPublishDate(date)}
                         initialFocus
+                        defaultMonth={new Date()}
                       />
                     </PopoverContent>
                   </Popover>

@@ -26,7 +26,7 @@ import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import BlogPostActions from '@/components/BlogPostActions';
-import { Clock } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 
 // Add this function to calculate weekly hours
@@ -339,68 +339,98 @@ export default function Home() {
   }
 
   // Update the renderPosts function to use filteredPosts
-  const renderPosts = () => (
-    <div className="space-y-6">
-      {loadingPosts ? (
-        // Loading skeleton
-        [1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton variant="card" className="h-48" />
-            </CardHeader>
-            <CardContent>
-              <SkeletonGroup>
-                <Skeleton variant="text" width="80%" />
-                <Skeleton variant="text" width="60%" />
-                <div className="flex gap-2">
-                  <Skeleton variant="circle" className="w-6 h-6" />
-                  <Skeleton variant="text" width="30%" />
-                </div>
-              </SkeletonGroup>
+  const renderPosts = () => {
+    const today = new Date();
+
+    // Filter posts for all users (including author) to show only today's and past posts
+    const filtered = filteredPosts.filter(post => {
+      const postDate = new Date(post.publish_date);
+      return postDate <= today;
+    });
+
+    return (
+      <div className="space-y-6">
+        {loadingPosts ? (
+          // Loading skeleton
+          [1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton variant="card" className="h-48" />
+              </CardHeader>
+              <CardContent>
+                <SkeletonGroup>
+                  <Skeleton variant="text" width="80%" />
+                  <Skeleton variant="text" width="60%" />
+                  <div className="flex gap-2">
+                    <Skeleton variant="circle" className="w-6 h-6" />
+                    <Skeleton variant="text" width="30%" />
+                  </div>
+                </SkeletonGroup>
+              </CardContent>
+            </Card>
+          ))
+        ) : filtered?.length > 0 ? (
+          filtered.map((post) => (
+            <BlogCard 
+              key={post.id} 
+              post={post} 
+              onDelete={handleDeletePost} 
+            />
+          ))
+        ) : (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-lg font-medium text-muted-foreground">
+                  No posts for this date
+                </p>
+              </div>
             </CardContent>
           </Card>
-        ))
-      ) : filteredPosts?.length > 0 ? (
-        filteredPosts.map((post) => (
-          <BlogCard 
-            key={post.id} 
-            post={post} 
-            onDelete={handleDeletePost} 
-          />
-        ))
-      ) : (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-lg font-medium text-muted-foreground">
-                No posts for this date
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   // Update PaginationControls to handle week changes
   const PaginationControls = () => {
-    const handleWeekChange = (newWeek) => {
-      setSelectedDate(null);
-      setCurrentWeek(newWeek);
+    const today = new Date();
+
+    // Get the latest week index that contains posts from today or earlier
+    const getLatestAllowedWeek = () => {
+      for (let i = weeklyPosts.length - 1; i >= 0; i--) {
+        const week = weeklyPosts[i];
+        const hasValidPosts = week.posts.some(post => {
+          const postDate = new Date(post.publish_date);
+          return postDate <= today;
+        });
+        if (hasValidPosts) return i;
+      }
+      return 0;
     };
+
+    const handleWeekChange = (newWeek) => {
+      const latestAllowedWeek = getLatestAllowedWeek();
+      const safeWeek = Math.min(newWeek, latestAllowedWeek);
+      setSelectedDate(null);
+      setCurrentWeek(safeWeek);
+    };
+
+    const canGoNext = currentWeek < getLatestAllowedWeek();
+    const canGoPrev = currentWeek > 0;
 
     return (
       <div className="flex justify-start gap-4 mt-8">
         <Button
           variant="outline"
-          disabled={currentWeek === 0}
+          disabled={!canGoPrev}
           onClick={() => handleWeekChange(currentWeek - 1)}
         >
           Previous Week
         </Button>
         <Button
           variant="outline"
-          disabled={currentWeek >= weeklyPosts.length - 1}
+          disabled={!canGoNext}
           onClick={() => handleWeekChange(currentWeek + 1)}
         >
           Next Week
@@ -530,7 +560,6 @@ export default function Home() {
                 <h2 className="text-2xl font-bold mb-4">Scheduled Posts</h2>
                 <div className="space-y-6">
                   {scheduledPosts.map(post => {
-                    const readingTime = Math.ceil((post.content?.replace(/<[^>]*>?/gm, '').split(/\s+/).length || 0) / 200);
                     const tags = Array.isArray(post.tags) ? post.tags : 
                       typeof post.tags === 'string' ? post.tags.split(',') : [];
                     
@@ -545,12 +574,8 @@ export default function Home() {
                               </p>
                               <div className="flex gap-2">
                                 <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {post.hours || 0} {post.hours === 1 ? 'hour' : 'hours'} shift
-                                </Badge>
-                                <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-800">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {readingTime} {readingTime === 1 ? 'minute' : 'minutes'} read
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  {post.content?.replace(/<[^>]*>?/gm, '').split(/\s+/).filter(Boolean).length || 0} words
                                 </Badge>
                               </div>
                             </div>

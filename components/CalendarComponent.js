@@ -4,7 +4,7 @@ import { format, isSameDay, isSameMonth, parseISO } from 'date-fns';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Clock, CalendarDays, Filter } from 'lucide-react';
+import { BarChart, Clock, CalendarDays, Filter, Home } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
@@ -117,6 +117,39 @@ export default function CalendarComponent({
   // Function to get heat level class based on post count
   const getHeatClass = (count) => {
     return count > 0 ? "bg-indigo-500 dark:bg-indigo-500" : "bg-gray-100 dark:bg-gray-800";
+  };
+  
+  // Add this helper function to get current week index
+  const getCurrentWeekIndex = () => {
+    const today = new Date();
+    // Find the week that contains today's date
+    const index = weeklyHours.findIndex(week => {
+      const weekStart = new Date(week.startDate);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      return today >= weekStart && today <= weekEnd;
+    });
+    
+    // If no week found, default to the first week
+    return index !== -1 ? index : 0;
+  };
+  
+  const handleBackToDefault = () => {
+    setSelectedDate(new Date()); // Set to current date
+    setCurrentWeek(getCurrentWeekIndex()); // Set to current week
+  };
+  
+  // Add this helper function to check if current view is today
+  const isViewingToday = () => {
+    const today = new Date();
+    if (selectedDate) {
+      return selectedDate.toDateString() === today.toDateString();
+    }
+    const currentWeek = weeklyHours[getCurrentWeekIndex()];
+    return (
+      currentWeek.startDate <= today &&
+      new Date(currentWeek.startDate).setDate(currentWeek.startDate.getDate() + 6) >= today
+    );
   };
   
   return (
@@ -324,11 +357,12 @@ export default function CalendarComponent({
       <CardFooter className="flex justify-center p-4 pt-2">
         <Button
           variant="outline"
-          size="sm"
-          onClick={() => setSelectedDate(null)}
-          className="text-indigo-600 dark:text-indigo-300"
+          onClick={handleBackToDefault}
+          className="flex items-center gap-1"
+          disabled={isViewingToday()}
         >
-          Back to Default
+          <Home className="h-4 w-4" />
+          Back to Today
         </Button>
       </CardFooter>
     </Card>

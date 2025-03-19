@@ -246,6 +246,7 @@ export default function EditBlogPage() {
                       selected={publishDate}
                       onSelect={(date) => date && setPublishDate(date)}
                       initialFocus
+                      defaultMonth={new Date()}
                     />
                   </PopoverContent>
                 </Popover>
