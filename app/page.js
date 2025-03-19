@@ -139,17 +139,9 @@ export default function Home() {
 
       const result = await response.json();
       
-      // Update the posts state to remove the deleted post
-      setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+      // Instead of updating state, reload the page
+      window.location.reload();
       
-      // Update the weekly posts state
-      setWeeklyPosts(prevWeeks => 
-        prevWeeks.map(week => ({
-          ...week,
-          posts: week.posts.filter(post => post.id !== postId)
-        }))
-      );
-
       toast.success('Post deleted successfully!');
     } catch (error) {
       console.error('Error deleting post:', error);
