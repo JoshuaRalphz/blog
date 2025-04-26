@@ -10,16 +10,32 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { useUser } from '@clerk/nextjs';
 
+// Add this function to calculate the end date based on hours
+const calculateEndDate = (weeklyHours) => {
+  let totalHours = 0;
+  for (const week of weeklyHours) {
+    totalHours += week.totalHours;
+    if (totalHours >= 400) {
+      return new Date(week.startDate);
+    }
+  }
+  // If 400 hours not reached, return the last week's end date
+  const lastWeek = weeklyHours[weeklyHours.length - 1];
+  return lastWeek ? new Date(new Date(lastWeek.startDate).setDate(lastWeek.startDate.getDate() + 6)) : new Date();
+};
+
 export default function CalendarComponent({ 
   selectedDate, 
   setSelectedDate, 
   startDate, 
-  endDate, 
-  posts,
-  weeklyHours
+  weeklyHours,
+  posts
 }) {
   const { user } = useUser();
   const today = new Date();
+  
+  // Calculate dynamic end date
+  const endDate = calculateEndDate(weeklyHours);
   
   // Check if user is authorized to view future posts
   const canViewFuturePosts = user?.id === process.env.NEXT_PUBLIC_AUTHOR_USER_ID;
@@ -192,7 +208,6 @@ export default function CalendarComponent({
               onSelect={setSelectedDate}
               disabled={(date) => 
                 date < startDate || 
-                date > endDate || 
                 (date > new Date() && !canViewFuturePosts)
               }
               className="rounded-lg border border-gray-200 dark:border-gray-800 justify-items-center w-full mx-auto h-102 shadow-sm"
@@ -348,7 +363,6 @@ export default function CalendarComponent({
                   })}
                 </div>
               </CardContent>
-
 
           </CardContent>
         </TabsContent>
